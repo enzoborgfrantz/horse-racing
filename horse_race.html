@@ -1,0 +1,1073 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Horse Race</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --track-dark: #3f6b34;
+        --track-light: #4f8340;
+        --rail: #7a4a24;
+        --cream: #faf7ef;
+        --ink: #22301f;
+        --gold: #d6a220;
+        --muted: #8a9186;
+        --go: #4f8340;
+        --stop: #b5533c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Verdana, sans-serif;
+        background: #e9e6db;
+        color: var(--ink);
+        padding: 24px 16px 60px;
+      }
+      h1 {
+        text-align: center;
+        font-size: 1.9rem;
+        letter-spacing: 0.5px;
+        margin: 0;
+      }
+      .header-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        margin: 0 0 20px;
+      }
+      .header-portrait {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        object-fit: contain;
+        flex-shrink: 0;
+      }
+      .header-portrait.flip {
+        transform: scaleX(-1);
+      }
+      .panel,
+      .results {
+        max-width: 900px;
+        margin: 0 auto 20px;
+        background: var(--cream);
+        border-radius: 10px;
+        padding: 18px 20px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+      }
+      textarea {
+        width: 100%;
+        min-height: 110px;
+        font-family: monospace;
+        font-size: 0.95rem;
+        padding: 10px;
+        border: 1px solid #cfc9b8;
+        border-radius: 6px;
+        resize: vertical;
+        background: #fff;
+      }
+      .hint {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin: 6px 2px 14px;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        justify-content: center;
+      }
+      .controls label {
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-right: 10px;
+      }
+      .race-controls {
+        max-width: 900px;
+        margin: 0 auto 14px;
+      }
+      button {
+        border: none;
+        padding: 10px 18px;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #fff;
+        cursor: pointer;
+        transition: filter 0.15s;
+      }
+      button:hover {
+        filter: brightness(1.08);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      #genBtn {
+        background: #3b6ea8;
+      }
+      #startBtn {
+        background: var(--go);
+      }
+      #resetBtn {
+        background: var(--stop);
+      }
+
+      .track-wrap {
+        max-width: 900px;
+        margin: 0 auto 20px;
+        position: relative;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+        border: 6px solid var(--rail);
+      }
+      #track {
+        position: relative;
+        background: repeating-linear-gradient(
+          to bottom,
+          var(--track-dark) 0px,
+          var(--track-dark) 34px,
+          var(--track-light) 34px,
+          var(--track-light) 68px
+        );
+        min-height: 120px;
+      }
+      .finish-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        right: 70px;
+        width: 10px;
+        background-image: repeating-linear-gradient(
+          to bottom,
+          #fff 0 8px,
+          #222 8px 16px
+        );
+        z-index: 2;
+      }
+      .lane {
+        position: relative;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .lane:first-child {
+        border-top: none;
+      }
+      .horse {
+        position: absolute;
+        left: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+        transform: translateX(0);
+      }
+      .horse .visual {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .horse .emoji {
+        font-size: 1.4rem;
+        display: inline-block;
+        line-height: 1;
+      }
+      .horse .horse-img {
+        display: block;
+        object-fit: contain;
+      }
+      .hint code {
+        background: #efe9d6;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 0.75rem;
+      }
+      .horse.running .emoji,
+      .horse.running .horse-img {
+        animation: bob 0.35s infinite ease-in-out;
+      }
+      @keyframes bob {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-3px);
+        }
+      }
+      .horse .tag {
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--ink);
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 4px;
+      }
+      .countdown {
+        position: absolute;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.35);
+        z-index: 5;
+      }
+      .countdown span {
+        font-size: 4.5rem;
+        font-weight: 800;
+        color: #fff;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+        display: inline-block;
+        animation: pop 0.55s ease-out;
+      }
+      @keyframes pop {
+        0% {
+          transform: scale(0.3);
+          opacity: 0;
+        }
+        55% {
+          transform: scale(1.25);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .event-ticker {
+        max-width: 900px;
+        height: 76px;
+        margin: 0 auto 10px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 6px;
+        overflow: hidden;
+        pointer-events: none;
+      }
+      .event-toast {
+        background: rgba(20, 20, 20, 0.85);
+        color: #fff;
+        font-size: 0.85rem;
+        font-weight: 700;
+        padding: 5px 14px;
+        border-radius: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        animation:
+          toastIn 0.25s ease-out,
+          toastOut 0.4s ease-in 2.1s forwards;
+        white-space: nowrap;
+      }
+      .event-toast.dq {
+        background: rgba(181, 83, 60, 0.92);
+      }
+      .event-toast.surge {
+        background: rgba(79, 131, 64, 0.92);
+      }
+      @keyframes toastIn {
+        0% {
+          transform: translateY(-8px);
+          opacity: 0;
+        }
+        100% {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      @keyframes toastOut {
+        0% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      .horse.event-stumble {
+        filter: saturate(0.6) brightness(0.85);
+      }
+      .horse.event-stumble .visual {
+        animation: shake 0.25s infinite;
+      }
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        50% {
+          transform: translateX(-2px);
+        }
+      }
+      .horse.event-surge .tag {
+        box-shadow:
+          0 0 0 2px #fff,
+          0 0 8px 2px #4f8340;
+      }
+      .horse.disqualified {
+        opacity: 0.4;
+        filter: grayscale(1);
+      }
+      .horse.disqualified .tag {
+        background: #555 !important;
+      }
+      .winner-box {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--cream);
+        border: 3px solid var(--gold);
+        border-radius: 10px;
+        padding: 16px 30px;
+        text-align: center;
+        display: none;
+        z-index: 6;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      }
+      .winner-box h2 {
+        margin: 0 0 4px;
+        color: var(--gold);
+        font-size: 1.2rem;
+      }
+      .winner-box .wname {
+        font-size: 1.3rem;
+        font-weight: 800;
+        margin: 2px 0;
+      }
+      .winner-box .wtime {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      .winner-portrait {
+        width: 84px;
+        height: 84px;
+        margin: 6px auto 8px;
+        border-radius: 14px;
+        border: 3px solid var(--gold);
+        background: #f1ede0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+      .winner-portrait img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .winner-portrait .emoji {
+        font-size: 2.4rem;
+        line-height: 1;
+      }
+      .mini-portrait {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 5px;
+        overflow: hidden;
+        background: #f1ede0;
+        vertical-align: middle;
+        flex-shrink: 0;
+      }
+      .mini-portrait img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .mini-portrait .emoji {
+        line-height: 1;
+      }
+      .results h2 {
+        text-align: center;
+        font-size: 1.1rem;
+        margin: 0 0 12px;
+      }
+      .results ol {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        max-width: 520px;
+        margin: 0 auto;
+      }
+      .results li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 7px 4px;
+        border-bottom: 1px solid #e3ddc9;
+        font-size: 0.92rem;
+      }
+      .results li .rname {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .results li:last-child {
+        border-bottom: none;
+      }
+      .results .place {
+        font-weight: 800;
+        width: 2em;
+        display: inline-block;
+      }
+      .results li:nth-child(1) .place {
+        color: var(--gold);
+      }
+      .results li:nth-child(2) .place {
+        color: #9aa0a6;
+      }
+      .results li:nth-child(3) .place {
+        color: #a86a3d;
+      }
+      .results .time {
+        font-family: monospace;
+        font-weight: 600;
+      }
+      .results li.dq {
+        opacity: 0.6;
+      }
+      .results li.dq .time {
+        color: var(--stop);
+        font-weight: 800;
+      }
+      .copy-row {
+        max-width: 520px;
+        margin: 16px auto 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+      }
+      #copyBtn {
+        background: #3b6ea8;
+        padding: 9px 16px;
+        font-size: 0.88rem;
+      }
+      .copy-confirm {
+        font-size: 0.82rem;
+        color: var(--go);
+        font-weight: 600;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .copy-confirm.show {
+        opacity: 1;
+      }
+
+      .section-title {
+        text-align: center;
+        font-size: 1.05rem;
+        margin: 0 0 14px;
+      }
+      .contestants-grid {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 14px;
+      }
+      .contestant-card {
+        width: 160px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 6px;
+      }
+      .contestant-portrait {
+        width: 144px;
+        height: 144px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: 3px solid var(--rail);
+        background: #f1ede0;
+      }
+      .contestant-portrait img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .contestant-portrait .emoji {
+        font-size: 4.2rem;
+        line-height: 1;
+      }
+      .contestant-name {
+        font-size: 0.78rem;
+        font-weight: 700;
+        line-height: 1.2;
+        word-break: break-word;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header-row">
+      <img
+        class="header-portrait"
+        src="images/barak and brenton.png"
+        alt="Barak and Brenton"
+      />
+      <h1>BB Horse Race</h1>
+      <img
+        class="header-portrait flip"
+        src="images/barak and brenton.png"
+        alt="Barak and Brenton"
+      />
+    </div>
+
+    <div class="panel">
+      <textarea id="namesInput">
+Simon
+David
+Thomas
+Ori
+Alex Z
+Philippine
+Jay
+Enzo
+Dudi
+Parinya
+Anuscheh
+Cristian
+Emma
+Nikola
+Susan
+Rocco
+Kida
+Louise
+Alex LP
+Frederick
+Christophe
+Or
+Benny
+</textarea
+      >
+      <div class="hint">
+        One horse name per line. For a custom look, add a PNG named exactly
+        after the horse (e.g. <code>images/Enzo.png</code>) in an
+        <code>images</code> folder next to this file — horses without a matching
+        image just use the default emoji. For real horse neighs instead of the
+        built-in synthesized one, drop MP3s named <code>neigh.mp3</code>,
+        <code>neigh1.mp3</code>, <code>neigh2.mp3</code>... into a
+        <code>sounds</code> folder next to this file (add as many variants as
+        you like).
+      </div>
+      <div class="controls">
+        <label
+          ><input type="checkbox" id="countdownToggle" checked /> Enable
+          countdown</label
+        >
+        <button id="genBtn">Generate Race</button>
+      </div>
+    </div>
+
+    <div class="panel" id="contestantsPanel" style="display: none">
+      <h2 class="section-title">Contestants</h2>
+      <div class="contestants-grid" id="contestantsGrid"></div>
+    </div>
+
+    <div class="controls race-controls">
+      <button id="startBtn">Start Race</button>
+      <button id="resetBtn">Reset Race</button>
+    </div>
+
+    <div class="event-ticker" id="eventTicker"></div>
+
+    <div class="track-wrap">
+      <div id="track">
+        <div class="finish-line"></div>
+        <div class="countdown" id="countdownOverlay">
+          <span id="countdownText">3</span>
+        </div>
+        <div class="winner-box" id="winnerBox">
+          <h2>🏆 WINNER 🏆</h2>
+          <div class="winner-portrait" id="winnerPortrait"></div>
+          <div class="wname" id="winnerName"></div>
+          <div class="wtime" id="winnerTime"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="results">
+      <h2>Race Results</h2>
+      <ol id="resultsList"></ol>
+      <div class="copy-row" id="copyRow" style="display: none">
+        <button id="copyBtn">📋 Copy signing order</button>
+        <span id="copyConfirm" class="copy-confirm"></span>
+      </div>
+    </div>
+
+    <script>
+      const EMOJIS = ["🐴", "🐎", "🦄"];
+      const COLORS = [
+        "#e63946",
+        "#2a9d8f",
+        "#457b9d",
+        "#f4a261",
+        "#8338ec",
+        "#ffb703",
+        "#06d6a0",
+        "#ef476f",
+        "#3a86ff",
+        "#fb8500",
+        "#9b5de5",
+        "#00b4d8",
+      ];
+
+      const namesInput = document.getElementById("namesInput");
+      const track = document.getElementById("track");
+      const genBtn = document.getElementById("genBtn");
+      const startBtn = document.getElementById("startBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const countdownToggle = document.getElementById("countdownToggle");
+      const countdownOverlay = document.getElementById("countdownOverlay");
+      const countdownText = document.getElementById("countdownText");
+      const winnerBox = document.getElementById("winnerBox");
+      const winnerPortrait = document.getElementById("winnerPortrait");
+      const winnerName = document.getElementById("winnerName");
+      const winnerTime = document.getElementById("winnerTime");
+      const resultsList = document.getElementById("resultsList");
+      const copyRow = document.getElementById("copyRow");
+      const copyBtn = document.getElementById("copyBtn");
+      const copyConfirm = document.getElementById("copyConfirm");
+      const contestantsPanel = document.getElementById("contestantsPanel");
+      const contestantsGrid = document.getElementById("contestantsGrid");
+      const eventTicker = document.getElementById("eventTicker");
+
+      let horses = [];
+      let raceRunning = false;
+      let animFrame = null;
+      let twistTimer = null;
+
+      // ---------- sound (no audio files needed) ----------
+      let audioCtx = null;
+      function getAudioCtx() {
+        if (!audioCtx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) audioCtx = new AC();
+        }
+        return audioCtx;
+      }
+
+      // ---------- horse neigh: real files if provided, else a synthesized whinny ----------
+      const neighFiles = [];
+      function tryLoadNeigh(filename) {
+        return new Promise((resolve) => {
+          const audio = new Audio("sounds/" + filename);
+          audio.addEventListener("canplaythrough", () => resolve(audio), {
+            once: true,
+          });
+          audio.addEventListener("error", () => resolve(null), { once: true });
+          audio.load();
+        });
+      }
+      (async function loadNeighSounds() {
+        const candidates = [
+          "neigh.mp3",
+          "neigh1.mp3",
+          "neigh2.mp3",
+          "neigh3.mp3",
+          "neigh4.mp3",
+          "neigh5.mp3",
+        ];
+        const loaded = await Promise.all(candidates.map(tryLoadNeigh));
+        loaded.forEach((a) => {
+          if (a) neighFiles.push(a);
+        });
+      })();
+
+      function playSynthNeigh() {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const t0 = ctx.currentTime;
+
+        // breathy noise burst (the "huff" at the start of a whinny)
+        const bufferSize = Math.floor(ctx.sampleRate * 0.15);
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.value = 0.15;
+        noise.connect(noiseGain).connect(ctx.destination);
+        noise.start(t0);
+
+        // the whinny itself: a sawtooth pitch sweeping down with vibrato
+        const dur = 0.75;
+        const osc = ctx.createOscillator();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(950, t0 + 0.05);
+        osc.frequency.exponentialRampToValueAtTime(280, t0 + dur);
+
+        const lfo = ctx.createOscillator();
+        lfo.frequency.value = 28;
+        const lfoGain = ctx.createGain();
+        lfoGain.gain.value = 40;
+        lfo.connect(lfoGain).connect(osc.frequency);
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.0001, t0);
+        gain.gain.exponentialRampToValueAtTime(0.25, t0 + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        osc.connect(gain).connect(ctx.destination);
+
+        lfo.start(t0);
+        osc.start(t0 + 0.05);
+        lfo.stop(t0 + dur);
+        osc.stop(t0 + dur + 0.05);
+      }
+
+      function playNeigh() {
+        if (neighFiles.length) {
+          const base =
+            neighFiles[Math.floor(Math.random() * neighFiles.length)];
+          const clone = base.cloneNode();
+          clone.volume = 0.9;
+          clone.play().catch(() => {});
+        } else {
+          playSynthNeigh();
+        }
+      }
+
+      function showToast(text, cls) {
+        const el = document.createElement("div");
+        el.className = "event-toast" + (cls ? " " + cls : "");
+        el.textContent = text;
+        eventTicker.appendChild(el);
+        while (eventTicker.children.length > 2) {
+          eventTicker.removeChild(eventTicker.firstChild);
+        }
+        setTimeout(() => el.remove(), 2600);
+      }
+
+      function horseImgSrc(h) {
+        return "images/" + encodeURIComponent(h.name) + ".png";
+      }
+      function portraitHTML(h, size) {
+        return `<img src="${horseImgSrc(h)}" style="width:${size}px;height:${size}px;display:none;"
+             onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+             onerror="this.remove();">
+          <span class="emoji" style="font-size:${Math.round(size * 0.62)}px;">${h.emoji}</span>`;
+      }
+
+      function parseNames() {
+        return namesInput.value
+          .split("\n")
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+
+      function buildTrack() {
+        track.querySelectorAll(".lane").forEach((l) => l.remove());
+        winnerBox.style.display = "none";
+        resultsList.innerHTML = "";
+        copyRow.style.display = "none";
+        copyConfirm.classList.remove("show");
+        eventTicker.innerHTML = "";
+
+        const names = parseNames();
+        horses = names.map((name, i) => ({
+          name,
+          emoji: EMOJIS[i % EMOJIS.length],
+          color: COLORS[i % COLORS.length],
+          x: 0,
+          finished: false,
+          finishTime: null,
+          baseSpeed: 0,
+        }));
+
+        // Shrink lane height / font as the field grows so 20+ horses still fit nicely.
+        const count = Math.max(names.length, 1);
+        const laneH = Math.max(20, Math.min(38, Math.floor(760 / count)));
+        const emojiSize = laneH < 26 ? 1.0 : laneH < 32 ? 1.2 : 1.4;
+        const tagSize = laneH < 26 ? 0.62 : laneH < 32 ? 0.68 : 0.72;
+
+        const finishLine = track.querySelector(".finish-line");
+        horses.forEach((h, i) => {
+          const lane = document.createElement("div");
+          lane.className = "lane";
+          lane.style.height = laneH + "px";
+
+          const imgSize = Math.max(18, laneH - 6);
+          const imgSrc = "images/" + encodeURIComponent(h.name) + ".png";
+
+          const el = document.createElement("div");
+          el.className = "horse";
+          el.innerHTML = `
+      <span class="visual" style="width:${imgSize}px;height:${imgSize}px;">
+        <img class="horse-img" src="${imgSrc}" style="width:${imgSize}px;height:${imgSize}px;display:none;"
+             onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+             onerror="this.remove();">
+        <span class="emoji" style="font-size:${emojiSize}rem;filter:drop-shadow(0 0 0 ${h.color})">${h.emoji}</span>
+      </span>
+      <span class="tag" style="background:${h.color};color:#fff;font-size:${tagSize}rem;">${h.name}</span>`;
+          el.style.color = h.color;
+          lane.appendChild(el);
+          track.insertBefore(lane, finishLine);
+          h.el = el;
+          h.lane = lane;
+        });
+
+        // Contestant portraits shown above the track
+        contestantsGrid.innerHTML = "";
+        if (horses.length) {
+          contestantsPanel.style.display = "block";
+          horses.forEach((h) => {
+            const imgSrc = "images/" + encodeURIComponent(h.name) + ".png";
+            const card = document.createElement("div");
+            card.className = "contestant-card";
+            card.innerHTML = `
+        <span class="contestant-portrait" style="border-color:${h.color};">
+          <img src="${imgSrc}" style="display:none;"
+               onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
+               onerror="this.remove();">
+          <span class="emoji">${h.emoji}</span>
+        </span>
+        <span class="contestant-name">${h.name}</span>`;
+            contestantsGrid.appendChild(card);
+          });
+        } else {
+          contestantsPanel.style.display = "none";
+        }
+      }
+
+      function laneWidth() {
+        // distance available: track width minus finish line offset minus horse width buffer
+        return track.clientWidth - 70 - 90;
+      }
+
+      function startRace() {
+        if (raceRunning) return;
+        if (horses.length === 0) {
+          buildTrack();
+          if (horses.length === 0) return;
+        }
+        // reset positions
+        horses.forEach((h) => {
+          h.x = 0;
+          h.finished = false;
+          h.finishTime = null;
+          h.el.style.transform = "translateX(0px)";
+          h.el.classList.remove("running");
+        });
+        winnerBox.style.display = "none";
+        resultsList.innerHTML = "";
+
+        startBtn.disabled = true;
+        genBtn.disabled = true;
+
+        if (countdownToggle.checked) {
+          countdownOverlay.style.display = "flex";
+          let n = 3;
+          countdownText.textContent = n;
+          const iv = setInterval(() => {
+            n--;
+            // restart the pop animation
+            countdownText.style.animation = "none";
+            void countdownText.offsetWidth;
+            countdownText.style.animation = "";
+            if (n > 0) {
+              countdownText.textContent = n;
+            } else if (n === 0) {
+              countdownText.textContent = "GO!";
+              playNeigh();
+            } else {
+              clearInterval(iv);
+              countdownOverlay.style.display = "none";
+              runRace();
+            }
+          }, 700);
+        } else {
+          runRace();
+        }
+      }
+
+      function runRace() {
+        raceRunning = true;
+        eventTicker.innerHTML = "";
+        const distance = laneWidth();
+        const startTime = performance.now();
+        let firstWinnerShown = false;
+        let dqCount = 0;
+        const maxDQ = Math.max(1, Math.min(2, Math.ceil(horses.length / 12)));
+
+        horses.forEach((h) => {
+          // Slower baseline pace than before so the race plays out over ~18-25s.
+          h.baseSpeed = 0.22 + Math.random() * 0.13; // px per frame-ish baseline factor
+          h.speedMult = 1;
+          h.effectUntil = 0;
+          h.disqualified = false;
+          h.dqAt = null;
+          h.el.classList.remove("event-stumble", "event-surge", "disqualified");
+        });
+
+        // Periodically roll for random mid-race twists on horses still in the running.
+        twistTimer = setInterval(() => {
+          const now = performance.now();
+          horses.forEach((h) => {
+            if (h.finished || h.disqualified) return;
+
+            // clear expired effects
+            if (h.effectUntil && now > h.effectUntil) {
+              h.speedMult = 1;
+              h.effectUntil = 0;
+              h.el.classList.remove("event-stumble", "event-surge");
+            }
+
+            if (h.effectUntil) return; // already mid-effect, don't roll again
+
+            const roll = Math.random();
+            if (roll < 0.05) {
+              h.speedMult = 0.28;
+              h.effectUntil = now + 900 + Math.random() * 700;
+              h.el.classList.add("event-stumble");
+              showToast(`🐴 ${h.name} stumbles!`, "stumble");
+              if (Math.random() < 0.6) playNeigh();
+            } else if (roll < 0.09) {
+              h.speedMult = 1.9;
+              h.effectUntil = now + 700 + Math.random() * 500;
+              h.el.classList.add("event-surge");
+              showToast(`⚡ ${h.name} surges ahead!`, "surge");
+              if (Math.random() < 0.35) playNeigh();
+            } else if (roll < 0.1 && dqCount < maxDQ) {
+              dqCount++;
+              h.disqualified = true;
+              h.finished = true;
+              h.finishTime = null;
+              h.dqAt = now;
+              h.dqProgress = h.x;
+              h.el.classList.add("disqualified");
+              showToast(`🚫 ${h.name} is DISQUALIFIED!`, "dq");
+              if (Math.random() < 0.6) playNeigh();
+            }
+          });
+        }, 650);
+
+        function frame(now) {
+          const elapsed = (now - startTime) / 1000;
+
+          horses.forEach((h) => {
+            if (h.finished) return;
+            const wobble = 0.75 + Math.random() * 0.5;
+            h.x += h.baseSpeed * wobble * h.speedMult * 2.4;
+            if (h.x >= distance) {
+              h.x = distance;
+              h.finished = true;
+              h.finishTime = elapsed;
+              h.el.classList.remove("running", "event-stumble", "event-surge");
+              if (!firstWinnerShown) {
+                firstWinnerShown = true;
+                winnerName.textContent = h.name;
+                winnerTime.textContent = `Time: ${elapsed.toFixed(3)}s`;
+                winnerPortrait.innerHTML = portraitHTML(h, 84);
+                winnerPortrait.style.borderColor = h.color;
+                winnerBox.style.display = "block";
+                playNeigh();
+              }
+            } else {
+              h.el.classList.add("running");
+            }
+            h.el.style.transform = `translateX(${h.x}px)`;
+          });
+
+          if (horses.some((h) => !h.finished)) {
+            animFrame = requestAnimationFrame(frame);
+          } else {
+            finishRace();
+          }
+        }
+
+        animFrame = requestAnimationFrame(frame);
+      }
+
+      function finishRace() {
+        raceRunning = false;
+        startBtn.disabled = false;
+        genBtn.disabled = false;
+        if (twistTimer) {
+          clearInterval(twistTimer);
+          twistTimer = null;
+        }
+
+        const finishers = horses
+          .filter((h) => !h.disqualified)
+          .sort((a, b) => a.finishTime - b.finishTime);
+        const dqd = horses
+          .filter((h) => h.disqualified)
+          .sort((a, b) => b.dqProgress - a.dqProgress);
+        const ranked = finishers.concat(dqd);
+
+        resultsList.innerHTML = "";
+        ranked.forEach((h, i) => {
+          const li = document.createElement("li");
+          if (h.disqualified) li.className = "dq";
+          const timeLabel = h.disqualified
+            ? "DQ"
+            : `${h.finishTime.toFixed(3)}s`;
+          li.innerHTML = `<span class="rname"><span class="place">${i + 1}.</span>
+        <span class="mini-portrait" style="width:26px;height:26px;">${portraitHTML(h, 26)}</span>
+        ${h.name}</span><span class="time">${timeLabel}</span>`;
+          resultsList.appendChild(li);
+        });
+
+        lastOrder = ranked.map((h) => h.name);
+        copyRow.style.display = "flex";
+        copyConfirm.classList.remove("show");
+      }
+
+      let lastOrder = [];
+
+      copyBtn.addEventListener("click", async () => {
+        const text = lastOrder.join("\n");
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch (e) {
+          // fallback for browsers/contexts without clipboard API
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
+        copyConfirm.textContent = "Copied!";
+        copyConfirm.classList.add("show");
+        setTimeout(() => copyConfirm.classList.remove("show"), 1800);
+      });
+
+      function resetRace() {
+        if (animFrame) cancelAnimationFrame(animFrame);
+        if (twistTimer) {
+          clearInterval(twistTimer);
+          twistTimer = null;
+        }
+        raceRunning = false;
+        startBtn.disabled = false;
+        genBtn.disabled = false;
+        countdownOverlay.style.display = "none";
+        eventTicker.innerHTML = "";
+        buildTrack();
+      }
+
+      genBtn.addEventListener("click", buildTrack);
+      startBtn.addEventListener("click", startRace);
+      resetBtn.addEventListener("click", resetRace);
+
+      buildTrack();
+    </script>
+  </body>
+</html>
